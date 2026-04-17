@@ -1,0 +1,167 @@
+{
+  "info": {
+    "name": "API Sentinel - Test Collection",
+    "description": "Complete test suite for API Sentinel security system",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "BASE_URL", "value": "http://localhost:5000" },
+    { "key": "TOKEN", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth - Register Admin",
+      "request": {
+        "method": "POST",
+        "url": "{{BASE_URL}}/api/auth/register",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"username\":\"admin\",\"email\":\"admin@test.com\",\"password\":\"admin123\",\"role\":\"admin\"}"
+        }
+      }
+    },
+    {
+      "name": "2. Auth - Login (save token)",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "const json = pm.response.json();",
+            "if (json.token) pm.collectionVariables.set('TOKEN', json.token);",
+            "pm.test('Login success', () => pm.expect(json.success).to.be.true);"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "url": "{{BASE_URL}}/api/auth/login",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"admin@test.com\",\"password\":\"admin123\"}"
+        }
+      }
+    },
+    {
+      "name": "3. Auth - Wrong Password (anomaly trigger)",
+      "request": {
+        "method": "POST",
+        "url": "{{BASE_URL}}/api/auth/login",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"admin@test.com\",\"password\":\"wrongpass\"}"
+        }
+      }
+    },
+    {
+      "name": "4. Auth - Get Profile",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/api/auth/me",
+        "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+      }
+    },
+    {
+      "name": "5. Test - Public Endpoint",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/api/test/public"
+      }
+    },
+    {
+      "name": "6. Test - Protected (with token)",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/api/test/protected",
+        "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+      }
+    },
+    {
+      "name": "7. Test - Protected (no token = 401)",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/api/test/protected"
+      }
+    },
+    {
+      "name": "8. Test - Data Integrity",
+      "request": {
+        "method": "POST",
+        "url": "{{BASE_URL}}/api/test/data-integrity",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{TOKEN}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"data\":{\"userId\":42,\"action\":\"payment\",\"amount\":9999}}"
+        }
+      }
+    },
+    {
+      "name": "9. SECURITY - SQL Injection (should be blocked)",
+      "request": {
+        "method": "POST",
+        "url": "{{BASE_URL}}/api/test/public",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"query\":\"SELECT * FROM users; DROP TABLE users;--\"}"
+        }
+      }
+    },
+    {
+      "name": "10. SECURITY - XSS Attack (should be blocked)",
+      "request": {
+        "method": "POST",
+        "url": "{{BASE_URL}}/api/test/public",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"input\":\"<script>alert('xss')</script>\"}"
+        }
+      }
+    },
+    {
+      "name": "11. Logs - Get All (admin only)",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/api/logs",
+        "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+      }
+    },
+    {
+      "name": "12. Logs - Get Threats",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/api/logs/threats",
+        "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+      }
+    },
+    {
+      "name": "13. Logs - Get Stats",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/api/logs/stats",
+        "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+      }
+    },
+    {
+      "name": "14. Logs - Blocked IPs",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/api/logs/blocked-ips",
+        "header": [{ "key": "Authorization", "value": "Bearer {{TOKEN}}" }]
+      }
+    },
+    {
+      "name": "15. Health Check",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/api/test/health"
+      }
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Sentinel — Register</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="auth-page">
+
+  <div class="auth-container">
+    <div class="auth-logo">
+      <span class="logo-icon">🛡️</span>
+      <h1>API SENTINEL</h1>
+      <p>CREATE ACCOUNT</p>
+    </div>
+
+    <div class="auth-card">
+      <h2>Create Account</h2>
+      <div id="alertBox" class="alert"></div>
+
+      <form id="registerForm">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="username" placeholder="johndoe" required minlength="3" maxlength="20">
+        </div>
+
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="email" placeholder="john@company.com" required>
+        </div>
+
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="password" placeholder="Min 6 characters" required minlength="6">
+        </div>
+
+        <div class="form-group">
+          <label>Account Role</label>
+          <select id="role">
+            <option value="user">User (Standard Access)</option>
+            <option value="admin">Admin (Full Access)</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="regBtn">
+          <span id="regBtnText">CREATE ACCOUNT</span>
+          <span id="regSpinner" class="spinner hidden"></span>
+        </button>
+      </form>
+    </div>
+
+    <div class="auth-footer">
+      Already have an account? <a href="../index.html">Login here</a>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('registerForm');
+    const alertBox = document.getElementById('alertBox');
+    const regBtn = document.getElementById('regBtn');
+    const regBtnText = document.getElementById('regBtnText');
+    const regSpinner = document.getElementById('regSpinner');
+
+    function showAlert(message, type = 'error') {
+      alertBox.textContent = message;
+      alertBox.className = `alert alert-${type} show`;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const username = document.getElementById('username').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const role = document.getElementById('role').value;
+
+      regBtnText.textContent = 'CREATING ACCOUNT...';
+      regSpinner.classList.remove('hidden');
+      regBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, email, password, role })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          showAlert('Account created! Redirecting to dashboard...', 'success');
+          setTimeout(() => window.location.href = '/pages/dashboard.html', 1200);
+        } else {
+          showAlert(data.message || 'Registration failed');
+        }
+      } catch (err) {
+        showAlert('Cannot connect to server. Is the backend running?');
+      } finally {
+        regBtnText.textContent = 'CREATE ACCOUNT';
+        regSpinner.classList.add('hidden');
+        regBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

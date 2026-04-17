@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Sentinel — Dashboard</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <!-- Chart.js for graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Socket.io client -->
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+
+<!-- ============================================================
+     MAIN DASHBOARD LAYOUT
+     ============================================================ -->
+<div class="dashboard" id="dashboard">
+
+  <!-- ==================== SIDEBAR ==================== -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-text">🛡️ API SENTINEL</div>
+      <div class="logo-sub">v1.0.0 — SECURE MODE</div>
+    </div>
+
+    <!-- System Status -->
+    <div class="status-badge" id="systemStatus">
+      <div class="dot"></div>
+      <span id="statusText">SYSTEM SECURE</span>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav-section">
+      <div class="nav-label">Main</div>
+      <a class="nav-item active" onclick="showSection('overview')" href="#">
+        <span class="nav-icon">📊</span>
+        <span>Overview</span>
+      </a>
+      <a class="nav-item" onclick="showSection('logs')" href="#">
+        <span class="nav-icon">📋</span>
+        <span>Request Logs</span>
+      </a>
+      <a class="nav-item" onclick="showSection('threats')" href="#">
+        <span class="nav-icon">⚠️</span>
+        <span>Threats</span>
+      </a>
+      <a class="nav-item" onclick="showSection('blocked')" href="#">
+        <span class="nav-icon">🚫</span>
+        <span>Blocked IPs</span>
+      </a>
+
+      <div class="nav-label" style="margin-top:1rem;">Tools</div>
+      <a class="nav-item" onclick="showSection('test')" href="#">
+        <span class="nav-icon">🔧</span>
+        <span>API Tester</span>
+      </a>
+    </nav>
+
+    <!-- User Info -->
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <div>
+          <div class="user-name" id="userName">Loading...</div>
+          <div class="user-role" id="userRole">---</div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="logout()">⏻ LOGOUT</button>
+    </div>
+  </aside>
+
+  <!-- ==================== MAIN CONTENT ==================== -->
+  <main class="main-content">
+
+    <!-- ===== SECTION: OVERVIEW ===== -->
+    <div class="section active" id="section-overview">
+      <div class="page-header">
+        <div>
+          <h1>Security Overview</h1>
+          <p class="mono">Real-time API threat monitoring</p>
+        </div>
+        <div class="timestamp" id="currentTime"></div>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📡</div>
+          <div class="stat-label">Total Requests (24h)</div>
+          <div class="stat-value" id="statTotal">--</div>
+          <div class="stat-change">Last 24 hours</div>
+        </div>
+        <div class="stat-card threat">
+          <div class="stat-icon">🚨</div>
+          <div class="stat-label">Threats Detected</div>
+          <div class="stat-value" id="statThreats">--</div>
+          <div class="stat-change">Last 24 hours</div>
+        </div>
+        <div class="stat-card safe">
+          <div class="stat-icon">✅</div>
+          <div class="stat-label">Safe Requests</div>
+          <div class="stat-value" id="statSafe">--</div>
+          <div class="stat-change">Normal traffic</div>
+        </div>
+        <div class="stat-card warn">
+          <div class="stat-icon">🔒</div>
+          <div class="stat-label">Blocked IPs</div>
+          <div class="stat-value" id="statBlocked">--</div>
+          <div class="stat-change">Currently active</div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">📈 Traffic Overview (24h)</div>
+            <span class="badge badge-info">LIVE</span>
+          </div>
+          <div class="panel-body">
+            <div class="chart-container">
+              <canvas id="trafficChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🎯 Threat Severity</div>
+          </div>
+          <div class="panel-body">
+            <div class="chart-container">
+              <canvas id="severityChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Row -->
+      <div class="grid-2">
+        <!-- Real-time alerts feed -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🔴 Live Security Feed</div>
+            <span class="badge badge-threat" id="liveIndicator">● LIVE</span>
+          </div>
+          <div class="alerts-feed" id="alertsFeed">
+            <div style="padding:1rem; text-align:center; color:var(--text-muted); font-family:var(--font-mono); font-size:0.8rem;">
+              Connecting to live feed...
+            </div>
+          </div>
+        </div>
+
+        <!-- Top threat IPs -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🏴 Top Threat Sources</div>
+          </div>
+          <div class="panel-body" id="topThreats">
+            <div style="text-align:center; color:var(--text-muted); font-family:var(--font-mono); font-size:0.8rem;">Loading...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SECTION: LOGS ===== -->
+    <div class="section" id="section-logs">
+      <div class="page-header">
+        <div>
+          <h1>Request Logs</h1>
+          <p class="mono">All API requests in real-time</p>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="loadLogs()">↻ REFRESH</button>
+      </div>
+
+      <!-- Filters -->
+      <div class="panel" style="margin-bottom:1rem;">
+        <div class="panel-body" style="padding:1rem; display:flex; gap:1rem; flex-wrap:wrap; align-items:center;">
+          <select id="logTypeFilter" onchange="loadLogs()" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:0.5rem;border-radius:4px;font-family:var(--font-mono);font-size:0.8rem;">
+            <option value="">All Types</option>
+            <option value="request">Requests</option>
+            <option value="auth">Auth</option>
+            <option value="anomaly">Anomalies</option>
+            <option value="block">Blocks</option>
+            <option value="heal">Self-Heals</option>
+          </select>
+          <select id="logThreatFilter" onchange="loadLogs()" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:0.5rem;border-radius:4px;font-family:var(--font-mono);font-size:0.8rem;">
+            <option value="">All</option>
+            <option value="true">Threats Only</option>
+          </select>
+          <select id="logSeverityFilter" onchange="loadLogs()" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:0.5rem;border-radius:4px;font-family:var(--font-mono);font-size:0.8rem;">
+            <option value="">All Severities</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Method</th>
+                <th>Endpoint</th>
+                <th>IP</th>
+                <th>Status</th>
+                <th>Severity</th>
+                <th>Message</th>
+              </tr>
+            </thead>
+            <tbody id="logsTableBody">
+              <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading logs...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- Pagination -->
+        <div style="padding:1rem 1.5rem; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;">
+          <span class="mono" style="font-size:0.75rem; color:var(--text-muted);" id="logCount">-- logs</span>
+          <div style="display:flex;gap:0.5rem;">
+            <button class="btn btn-sm btn-primary" onclick="changePage(-1)" id="prevBtn">← PREV</button>
+            <span class="mono" style="padding:0.35rem 0.75rem;font-size:0.75rem;color:var(--text-secondary);" id="pageInfo">1 / 1</span>
+            <button class="btn btn-sm btn-primary" onclick="changePage(1)" id="nextBtn">NEXT →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SECTION: THREATS ===== -->
+    <div class="section" id="section-threats">
+      <div class="page-header">
+        <div>
+          <h1>Threat Alerts</h1>
+          <p class="mono">Detected anomalies and attacks</p>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="loadThreats()">↻ REFRESH</button>
+      </div>
+
+      <div class="panel">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Type</th>
+                <th>IP Address</th>
+                <th>Endpoint</th>
+                <th>Severity</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody id="threatsTableBody">
+              <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">Loading threats...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SECTION: BLOCKED IPs ===== -->
+    <div class="section" id="section-blocked">
+      <div class="page-header">
+        <div>
+          <h1>Blocked IPs</h1>
+          <p class="mono">Auto-blocked by self-healing system</p>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="loadBlockedIPs()">↻ REFRESH</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">🚫 Currently Blocked IP Addresses</div>
+          <span class="badge badge-threat" id="blockedCount">0 IPs</span>
+        </div>
+        <div class="panel-body" id="blockedIPList">
+          <div style="text-align:center;color:var(--text-muted);font-family:var(--font-mono);font-size:0.8rem;">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SECTION: API TESTER ===== -->
+    <div class="section" id="section-test">
+      <div class="page-header">
+        <div>
+          <h1>API Tester</h1>
+          <p class="mono">Test API endpoints and security features</p>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Quick Test Panel -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">⚡ Quick Tests</div>
+          </div>
+          <div class="panel-body">
+            <div style="display:flex;flex-direction:column;gap:0.75rem;">
+              <button class="btn btn-primary" onclick="testEndpoint('GET', '/api/test/public')">
+                🌐 Test Public Endpoint
+              </button>
+              <button class="btn btn-primary" onclick="testEndpoint('GET', '/api/test/protected')">
+                🔒 Test Protected Endpoint
+              </button>
+              <button class="btn btn-primary" onclick="testEndpoint('GET', '/api/test/health')">
+                💚 System Health Check
+              </button>
+              <button class="btn btn-primary" onclick="testDataIntegrity()">
+                🔐 Test Data Integrity
+              </button>
+              <button class="btn btn-danger" style="width:100%;justify-content:center;" onclick="testInjection()">
+                💉 Simulate SQL Injection (blocked)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Response Panel -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">📤 Response</div>
+            <span id="testStatus" class="badge badge-info">READY</span>
+          </div>
+          <div class="panel-body">
+            <pre id="testResponse" style="background:var(--bg-secondary);padding:1rem;border-radius:4px;color:var(--accent-cyan);font-family:var(--font-mono);font-size:0.75rem;overflow:auto;max-height:350px;white-space:pre-wrap;">// Response will appear here</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Real-time connection indicator -->
+<div class="connection-status" id="connStatus">
+  <span id="connDot" style="width:8px;height:8px;border-radius:50%;background:var(--accent-green);display:inline-block;box-shadow:0 0 6px var(--accent-green);"></span>
+  <span id="connText" class="mono">CONNECTED</span>
+</div>
+
+<script src="/js/dashboard.js"></script>
+</body>
+</html>

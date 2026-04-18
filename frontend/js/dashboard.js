@@ -4,7 +4,17 @@
 // =============================================
 // AUTH GUARD - Redirect if not logged in
 // =============================================
-// const API_URL = "https://api-security-5q8p.onrender.com";
+const API_BASE_URL = 'https://api-security-5q8p.onrender.com';
+const SOCKET_SERVER_URL = API_BASE_URL;
+
+function buildApiUrl(path) {
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+
+  return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
 const token = localStorage.getItem('token');
 const user = JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -29,6 +39,7 @@ setInterval(updateClock, 1000);
 // API HELPER
 // =============================================
 async function apiCall(url, method = 'GET', body = null) {
+  const targetUrl = buildApiUrl(url);
   const options = {
     method,
     headers: {
@@ -38,7 +49,7 @@ async function apiCall(url, method = 'GET', body = null) {
   };
   if (body) options.body = JSON.stringify(body);
 
-  const res = await fetch(url, options);
+  const res = await fetch(targetUrl, options);
   const data = await res.json();
 
   // If token expired, redirect to login
@@ -82,7 +93,10 @@ function logout() {
 // =============================================
 let socket;
 try {
-  socket = io(window.location.origin);
+  socket = io(SOCKET_SERVER_URL, {
+    transports: ['websocket', 'polling'],
+    withCredentials: true
+  });
 
   socket.on('connect_error', (err) => {
     console.error('Socket connect error:', err);
@@ -509,7 +523,7 @@ async function testInjection() {
 
   try {
     // Send a known SQL injection pattern - should be blocked
-    const res = await fetch('https://api-security-5q8p.onrender.com/api/test/public', {
+    const res = await fetch(buildApiUrl('/api/test/public'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

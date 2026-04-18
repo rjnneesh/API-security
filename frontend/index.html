@@ -59,6 +59,9 @@
     // LOGIN PAGE LOGIC
     // =============================================
 
+    const API_BASE_URL = 'https://api-security-5q8p.onrender.com';
+    const buildApiUrl = (path) => `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+
     // If already logged in, redirect to dashboard
     const token = localStorage.getItem('token');
     if (token) window.location.href = 'pages/dashboard.html';
@@ -91,7 +94,7 @@
       loginBtn.disabled = true;
 
       try {
-        const res = await fetch('/api/auth/login', {
+        const res = await fetch(buildApiUrl('/api/auth/login'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })

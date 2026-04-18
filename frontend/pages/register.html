@@ -56,6 +56,9 @@
   </div>
 
   <script>
+    const API_BASE_URL = 'https://api-security-5q8p.onrender.com';
+    const buildApiUrl = (path) => `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+
     const form = document.getElementById('registerForm');
     const alertBox = document.getElementById('alertBox');
     const regBtn = document.getElementById('regBtn');
@@ -80,7 +83,7 @@
       regBtn.disabled = true;
 
       try {
-        const res = await fetch('https://api-security-5q8p.onrender.com/api/auth/register', {
+        const res = await fetch(buildApiUrl('/api/auth/register'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, email, password, role })

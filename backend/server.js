@@ -19,6 +19,56 @@ const authRoutes = require('./routes/auth');
 const logRoutes = require('./routes/logs');
 const apiRoutes = require('./routes/api');
 
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://api-security-five.vercel.app';
+const BACKEND_URL = process.env.BACKEND_URL || 'https://api-security-5q8p.onrender.com';
+
+const normalizeOrigin = (value) => {
+  if (!value) return '';
+
+  try {
+    return new URL(value).origin;
+  } catch (error) {
+    return String(value).trim().replace(/\/$/, '');
+  }
+};
+
+const allowedOrigins = new Set([
+  normalizeOrigin(FRONTEND_URL),
+  normalizeOrigin(BACKEND_URL),
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'http://localhost:5001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5000',
+  'http://127.0.0.1:5001'
+]);
+
+if (process.env.CORS_ORIGINS) {
+  process.env.CORS_ORIGINS
+    .split(',')
+    .map((origin) => normalizeOrigin(origin))
+    .filter(Boolean)
+    .forEach((origin) => allowedOrigins.add(origin));
+}
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    const normalizedOrigin = normalizeOrigin(origin);
+    if (allowedOrigins.has(normalizedOrigin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`Not allowed by CORS: ${origin}`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
 // ==========================================
 // Initialize Express + HTTP + Socket.io
 // ==========================================
@@ -26,8 +76,9 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: '*', // In production, restrict to your frontend domain
-    methods: ['GET', 'POST']
+    origin: Array.from(allowedOrigins),
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
@@ -47,12 +98,8 @@ app.use(helmet({
 // CORS CONFIGURATION
 // Controls which origins can call our API
 // ==========================================
-app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5001', 'http://127.0.0.1:5001','https://api-security-5q8p.onrender.com'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // ==========================================
 // GLOBAL RATE LIMITER

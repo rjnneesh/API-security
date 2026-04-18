@@ -80,7 +80,7 @@
       regBtn.disabled = true;
 
       try {
-        const res = await fetch('/api/auth/register', {
+        const res = await fetch('https://api-security-5q8p.onrender.com/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, email, password, role })

@@ -4,7 +4,7 @@
 // =============================================
 // AUTH GUARD - Redirect if not logged in
 // =============================================
-const API_URL = "https://api-security-5q8p.onrender.com";
+// const API_URL = "https://api-security-5q8p.onrender.com";
 const token = localStorage.getItem('token');
 const user = JSON.parse(localStorage.getItem('user') || '{}');
 

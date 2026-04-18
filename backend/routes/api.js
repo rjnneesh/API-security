@@ -39,6 +39,7 @@ router.get('/protected', protect, (req, res) => {
  */
 router.post('/data-integrity', protect, (req, res) => {
   const { data } = req.body;
+  const jwtSecret = process.env.JWT_SECRET || 'api_sentinel_dev_secret_change_me';
 
   if (!data) {
     return res.status(400).json({ success: false, message: 'Please provide data field' });
@@ -46,7 +47,7 @@ router.post('/data-integrity', protect, (req, res) => {
 
   // Hash the data using SHA-256 to demonstrate integrity checking
   const hash = crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
-  const hmac = crypto.createHmac('sha256', process.env.JWT_SECRET)
+  const hmac = crypto.createHmac('sha256', jwtSecret)
                      .update(JSON.stringify(data))
                      .digest('hex');
 

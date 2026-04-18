@@ -72,10 +72,13 @@ UserSchema.methods.matchPassword = async function(enteredPassword) {
 
 // Generate JWT Token
 UserSchema.methods.getSignedJwtToken = function() {
+  const jwtSecret = process.env.JWT_SECRET || 'api_sentinel_dev_secret_change_me';
+  const jwtExpire = process.env.JWT_EXPIRE || '7d';
+
   return jwt.sign(
     { id: this._id, role: this.role },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRE }
+    jwtSecret,
+    { expiresIn: jwtExpire }
   );
 };
 

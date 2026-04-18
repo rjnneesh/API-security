@@ -2,6 +2,20 @@
 // Main entry point for API Sentinel backend
 
 require('dotenv').config();
+
+// Allow booting without a .env file by applying sane runtime defaults.
+if (!process.env.MONGO_URI) {
+  process.env.MONGO_URI = 'mongodb://localhost:27017/api_sentinel';
+}
+
+if (!process.env.JWT_SECRET) {
+  process.env.JWT_SECRET = 'api_sentinel_dev_secret_change_me';
+}
+
+if (!process.env.JWT_EXPIRE) {
+  process.env.JWT_EXPIRE = '7d';
+}
+
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');

@@ -509,7 +509,7 @@ async function testInjection() {
 
   try {
     // Send a known SQL injection pattern - should be blocked
-    const res = await fetch('/api/test/public', {
+    const res = await fetch('https://api-security-5q8p.onrender.com/api/test/public', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
